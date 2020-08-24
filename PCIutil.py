@@ -3,9 +3,9 @@ import winreg
 path = r"SYSTEM\CurrentControlSet\Enum\PCI"
 affinity_path = "\\Device Parameters\\Interrupt Management\\Affinity Policy"
 interrupt_path = "\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties"
-affinity_policies = {1: "IrqPolicyAllCloseProcessors", 2: "IrqPolicyOneCloseProcessor", 3: "IrqPolicyAllProcessorsInMachine", 4: "IrqPolicySpecifiedProcessors", 5: "IrqPolicySpreadMessagesAcrossAllProcessors", "-": "IrqPolicyMachineDefault", "Unsupported": "Unsupported"}
-interrupt_priorities = {1: "Low", 2: "Normal", 3: "High", "-": "Undefined", "Unsupported": "Unsupported"}
-msi = {1: "on", 0: "off", "Unsupported": "Unsupported"}
+affinity_policies = {1: "AllCloseProcessors", 2: "OneCloseProcessor", 3: "AllProcessorsInMachine", 4: "SpecifiedProcessors", 5: "SpreadMessagesAcrossAllProcessors", "-": "MachineDefault", "N/A": "N/A"}
+interrupt_priorities = {1: "Low", 2: "Normal", 3: "High", "-": "-", "N/A": "N/A"}
+msi = {1: "on", 0: "off", "N/A": "N/A"}
 value_types = {"REG_DWORD": 4, "REG_BINARY": 3}
 message_content = ""
 
@@ -29,7 +29,7 @@ def read_value(path, value_name):
             except FileNotFoundError:
                 return "-"
     except FileNotFoundError:
-        return "Unsupported"
+        return "N/A"
 
 def write_value(path, value_name, value_type, value):
     try:
@@ -59,7 +59,7 @@ def fetch_devices():
                     device["DeviceDesc"] = read_value(path3, "DeviceDesc").split(";")[1]
                     device["DevicePriority"] = read_value(path3 + affinity_path, "DevicePriority")
                     device["DevicePolicy"] = read_value(path3 + affinity_path, "DevicePolicy")
-                    if device["DevicePolicy"] == "Unsupported":
+                    if device["DevicePolicy"] == "N/A":
                         create_affinity_policy_keys(device["Path"])
                     device["AssignmentSetOverride"] = read_value(path3 + affinity_path, "AssignmentSetOverride")
                     device["MessageNumberLimit"] = read_value(path3 + interrupt_path, "MessageNumberLimit")
@@ -68,14 +68,14 @@ def fetch_devices():
     return devices
 
 def convert_affinities(value):
-    if value == "-" or value == "Unsupported":
+    if value == "-":
         return "-"
     current_cpu = 0
     reversed_binary_string = value.split("b")[1][::-1]
     cpu_list = ""
     for char in reversed_binary_string:
         if char == "1":
-            cpu_list += "CPU " + str(current_cpu)
+            cpu_list += str(current_cpu)
             if current_cpu < len(reversed_binary_string) - 1:
                 cpu_list += ", "
         current_cpu += 1
@@ -101,13 +101,14 @@ def print_device_information():
                 length = len(affinity_policies[value])
                 if length > max_affinitypolicy_length:
                     max_affinitypolicy_length = length
+    max_index_length = len(str(len(devices)))
     for device in devices:
-        print("\n" + str(devices.index(device)) + ". " + device['DeviceDesc'] + "\n" + 2*" ",
+        print("\n" + (max_index_length - len(str(devices.index(device))))*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + "\n\n" + (max_index_length + 1)*" ",
               "MSI: " + msi[device["MSISupported"]] + (5 + max_msi_length - len(msi[device["MSISupported"]]))*" ",
-              "Message Limit: " + str(device["MessageNumberLimit"]) + (5 + max_messagelimit_length - len(str(device["MessageNumberLimit"])))*" ",
-              "Interrupt Priority: " + interrupt_priorities[device["DevicePriority"]] + (5 + max_devprio_length - len(interrupt_priorities[device["DevicePriority"]]))*" ",
-              "Affinity Policy: " + affinity_policies[device["DevicePolicy"]] + (5 + max_affinitypolicy_length - len(affinity_policies[device["DevicePolicy"]]))*" ",
-              "CPUs: " + convert_affinities(device["AssignmentSetOverride"]))
+              "MSG Limit: " + str(device["MessageNumberLimit"]) + (5 + max_messagelimit_length - len(str(device["MessageNumberLimit"])))*" ",
+              "Interrupt Prio: " + interrupt_priorities[device["DevicePriority"]] + (5 + max_devprio_length - len(interrupt_priorities[device["DevicePriority"]]))*" ",
+              "IRQ Policy: " + affinity_policies[device["DevicePolicy"]] + (5 + max_affinitypolicy_length - len(affinity_policies[device["DevicePolicy"]]))*" ",
+              "CPU: " + convert_affinities(device["AssignmentSetOverride"]))
 
 def device_check(device_selection):
     try:
@@ -208,8 +209,9 @@ def show_hardware_ids():
         length = len(device["DeviceDesc"])
         if length > max_device_length:
             max_device_length = length
+    spacing = len(str(len(devices))) - 1
     for device in devices:
-        ids += "\n" + str(devices.index(device)) + ". " + device['DeviceDesc'] + ": " + (max_device_length - len(device['DeviceDesc']))*" " + device['Hardware ID']
+        ids += "\n" + spacing*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + ": " + (max_device_length - len(device['DeviceDesc']))*" " + device['Hardware ID']
     message(ids)
 
 def show_readme():
