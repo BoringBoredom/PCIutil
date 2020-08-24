@@ -101,7 +101,7 @@ def print_device_information():
                 length = len(affinity_policies[value])
                 if length > max_affinitypolicy_length:
                     max_affinitypolicy_length = length
-    max_index_length = len(str(len(devices)))
+    max_index_length = len(str(len(devices) - 1))
     for device in devices:
         print("\n" + (max_index_length - len(str(devices.index(device))))*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + "\n\n" + (max_index_length + 1)*" ",
               "MSI: " + msi[device["MSISupported"]] + (5 + max_msi_length - len(msi[device["MSISupported"]]))*" ",
@@ -209,9 +209,9 @@ def show_hardware_ids():
         length = len(device["DeviceDesc"])
         if length > max_device_length:
             max_device_length = length
-    spacing = len(str(len(devices))) - 1
+    max_index_length = len(str(len(devices) - 1))
     for device in devices:
-        ids += "\n" + spacing*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + ": " + (max_device_length - len(device['DeviceDesc']))*" " + device['Hardware ID']
+        ids += "\n" + (max_index_length - len(str(devices.index(device))))*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + ": " + (max_device_length - len(device['DeviceDesc']))*" " + device['Hardware ID']
     message(ids)
 
 def show_readme():
