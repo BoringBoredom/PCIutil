@@ -1,4 +1,4 @@
-import winreg, multiprocessing
+import winreg, os
 
 path = r"SYSTEM\CurrentControlSet\Enum\PCI"
 affinity_path = "\\Device Parameters\\Interrupt Management\\Affinity Policy"
@@ -205,7 +205,7 @@ def change_affinity_policy():
         delete_value(devices[device]["Path"] + affinity_path, "AssignmentSetOverride")
 
 def change_cpu_affinities():
-    thread_count = multiprocessing.cpu_count()
+    thread_count = os.cpu_count()
     option = input("Your last thread -> " + thread_count*"1" + " <- your first thread. 0 = no affinity, 1 = affinity.\nEnter the binary string corresponding to your thread count and desired affinities: ")
     for char in option:
         if char not in ["0", "1"]:
