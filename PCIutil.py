@@ -3,9 +3,9 @@ import winreg, os
 path = r"SYSTEM\CurrentControlSet\Enum\PCI"
 affinity_path = "\\Device Parameters\\Interrupt Management\\Affinity Policy"
 interrupt_path = "\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties"
-affinity_policies = {1: "AllCloseProcessors", 2: "OneCloseProcessor", 3: "AllProcessorsInMachine", 4: "SpecifiedProcessors", 5: "SpreadMessagesAcrossAllProcessors", "-": "MachineDefault", "N/A": "N/A"}
-interrupt_priorities = {1: "Low", 2: "Normal", 3: "High", "-": "-", "N/A": "N/A"}
-msi = {1: "on", 0: "off", "N/A": "N/A"}
+affinity_policies = {1: "AllCloseProcessors", 2: "OneCloseProcessor", 3: "AllProcessorsInMachine", 4: "SpecifiedProcessors", 5: "SpreadMessagesAcrossAllProcessors", "-": "MachineDefault"}
+interrupt_priorities = {1: "Low", 2: "Normal", 3: "High", "-": "-"}
+msi = {1: "on", 0: "off", "-": "-"}
 value_types = {"REG_DWORD": 4, "REG_BINARY": 3}
 message_content = ""
 
@@ -13,23 +13,21 @@ def message(message):
     global message_content
     message_content = message
 
-def create_affinity_policy_keys(path):
+def create_registry_keys(path):
     with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path + "\\Device Parameters", 0, winreg.KEY_WRITE | winreg.KEY_WOW64_64KEY) as key:
         winreg.CreateKeyEx(key, "Interrupt Management", 0, winreg.KEY_WRITE)
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path + "\\Device Parameters\\Interrupt Management", 0, winreg.KEY_WRITE | winreg.KEY_WOW64_64KEY) as key2:
             winreg.CreateKeyEx(key2, "Affinity Policy", 0, winreg.KEY_WRITE)
+            winreg.CreateKeyEx(key2, "MessagesignaledInterruptProperties", 0, winreg.KEY_WRITE)
 
 def read_value(path, value_name):
-    try:
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
-            try:
-                if winreg.QueryValueEx(key, value_name)[1] == 3:
-                    return int.from_bytes(winreg.QueryValueEx(key, value_name)[0], "little")
-                return winreg.QueryValueEx(key, value_name)[0]
-            except FileNotFoundError:
-                return "-"
-    except FileNotFoundError:
-        return "N/A"
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
+        try:
+            if winreg.QueryValueEx(key, value_name)[1] == 3:
+                return int.from_bytes(winreg.QueryValueEx(key, value_name)[0], "little")
+            return winreg.QueryValueEx(key, value_name)[0]
+        except FileNotFoundError:
+            return "-"
 
 def write_value(path, value_name, value_type, value):
     try:
@@ -56,11 +54,10 @@ def fetch_devices():
                 path3 = path2 + "\\" + winreg.EnumKey(key2, 0)
                 if read_value(path3, "ConfigFlags") == 0:
                     device["Path"] = path3
+                    create_registry_keys(device["Path"])
                     device["DeviceDesc"] = read_value(path3, "DeviceDesc").split(";")[1]
                     device["DevicePriority"] = read_value(path3 + affinity_path, "DevicePriority")
                     device["DevicePolicy"] = read_value(path3 + affinity_path, "DevicePolicy")
-                    if device["DevicePolicy"] == "N/A":
-                        create_affinity_policy_keys(device["Path"])
                     device["AssignmentSetOverride"] = read_value(path3 + affinity_path, "AssignmentSetOverride")
                     device["MessageNumberLimit"] = read_value(path3 + interrupt_path, "MessageNumberLimit")
                     device["MSISupported"] = read_value(path3 + interrupt_path, "MSISupported")
@@ -163,7 +160,10 @@ def change_message_limit():
         return
     for device in device_selection:
         device = int(device)
-        write_value(devices[device]["Path"] + interrupt_path, "MessageNumberLimit", "REG_DWORD", limit)
+        if limit == 0:
+            delete_value(devices[device]["Path"] + interrupt_path, "MessageNumberLimit")
+        else:
+            write_value(devices[device]["Path"] + interrupt_path, "MessageNumberLimit", "REG_DWORD", limit)
 
 def change_interrupt_priority():
     temp = {"0": "Undefined", "1": "Low", "2": "Normal", "3": "High"}
