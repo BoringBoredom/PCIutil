@@ -1,4 +1,4 @@
-import winreg
+import winreg, multiprocessing
 
 path = r"SYSTEM\CurrentControlSet\Enum\PCI"
 affinity_path = "\\Device Parameters\\Interrupt Management\\Affinity Policy"
@@ -24,7 +24,7 @@ def read_value(path, value_name):
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
             try:
                 if winreg.QueryValueEx(key, value_name)[1] == 3:
-                    return bin(ord(winreg.QueryValueEx(key, value_name)[0]))
+                    return int.from_bytes(winreg.QueryValueEx(key, value_name)[0], "little")
                 return winreg.QueryValueEx(key, value_name)[0]
             except FileNotFoundError:
                 return "-"
@@ -70,6 +70,7 @@ def fetch_devices():
 def convert_affinities(value):
     if value == "-":
         return "-"
+    value = bin(value)
     current_cpu = 0
     reversed_binary_string = value.split("b")[1][::-1]
     cpu_list = ""
@@ -134,7 +135,7 @@ def toggle_msi():
     temp = {"0": "OFF", "1": "ON"}
     option = input("Toggle MSI: 0 = OFF, 1 = ON: ")
     if option not in temp:
-        message("Wrong input. Only 0 or 1 possible.")
+        message("Invalid input. Only 0 or 1 possible.")
         return
     device_selection = input(f"Turn MSI {temp[option]} for which devices?: ")
     if device_selection == "all":
@@ -168,7 +169,7 @@ def change_interrupt_priority():
     temp = {"0": "Undefined", "1": "Low", "2": "Normal", "3": "High"}
     option = input("Change Interrupt Priority to 0 = Undefined, 1 = Low, 2 = Normal, 3 = High: ")
     if option not in temp:
-        message("Wrong input. Only 0, 1, 2 or 3 possible.")
+        message("Invalid input. Only 0, 1, 2 or 3 possible.")
         return
     device_selection = input(f"Change Interrupt Priority to {option} for which devices?: ")
     if device_selection == "all":
@@ -184,10 +185,10 @@ def change_interrupt_priority():
             write_value(devices[device]["Path"] + affinity_path, "DevicePriority", "REG_DWORD", int(option))
 
 def change_affinity_policy():
-    temp = {"0": "IrqPolicyMachineDefault", "1": "IrqPolicyAllCloseProcessors", "2": "IrqPolicyOneCloseProcessor", "3": "IrqPolicyAllProcessorsInMachine", "4": "IrqPolicySpecifiedProcessors", "5": "IrqPolicySpreadMessagesAcrossAllProcessors"}
-    option = input("Change Affinity Policy to 0 = IrqPolicyMachineDefault, 1 = IrqPolicyAllCloseProcessors, 2 = IrqPolicyOneCloseProcessor, 3 = IrqPolicyAllProcessorsInMachine, 4 = IrqPolicySpecifiedProcessors, 5 = IrqPolicySpreadMessagesAcrossAllProcessors: ")
+    temp = {"0": "IrqPolicyMachineDefault", "1": "IrqPolicyAllCloseProcessors", "2": "IrqPolicyOneCloseProcessor", "3": "IrqPolicyAllProcessorsInMachine", "5": "IrqPolicySpreadMessagesAcrossAllProcessors"}
+    option = input("Change Affinity Policy to 0 = IrqPolicyMachineDefault, 1 = IrqPolicyAllCloseProcessors, 2 = IrqPolicyOneCloseProcessor, 3 = IrqPolicyAllProcessorsInMachine, 5 = IrqPolicySpreadMessagesAcrossAllProcessors: ")
     if option not in temp:
-        message("Wrong input, Only 0, 1, 2, 3, 4 or 5 possible.")
+        message("Invalid input. Only 0, 1, 2, 3 or 5 possible.")
         return
     device_selection = input(f"Change the Affinity Policy to {option} for which devices?: ")
     if device_selection == "all":
@@ -201,6 +202,32 @@ def change_affinity_policy():
             delete_value(devices[device]["Path"] + affinity_path, "DevicePolicy")
         else:
             write_value(devices[device]["Path"] + affinity_path, "DevicePolicy", "REG_DWORD", int(option))
+        delete_value(devices[device]["Path"] + affinity_path, "AssignmentSetOverride")
+
+def change_cpu_affinities():
+    thread_count = multiprocessing.cpu_count()
+    option = input("Your last thread -> " + thread_count*"1" + " <- your first thread. 0 = no affinity, 1 = affinity.\nEnter the binary string corresponding to your thread count and desired affinities: ")
+    for char in option:
+        if char not in ["0", "1"]:
+            message("Invalid format. Binary string can only consist of 0s and 1s.")
+            return
+    if len(option) > thread_count:
+        message("Invalid format. Too many threads entered.")
+        return
+    device_selection = input(f"Change the affinity to CPUs {convert_affinities(int(option, 2))} for which devices?: ")
+    if device_selection == "all":
+        device_selection = all_devices_selection()
+    device_selection = device_selection.split(" ")
+    if device_check(device_selection) == False:
+        return
+    for device in device_selection:
+        device = int(device)
+        if option == thread_count*"0":
+            delete_value(devices[device]["Path"] + affinity_path, "DevicePolicy")
+            delete_value(devices[device]["Path"] + affinity_path, "AssignmentSetOverride")
+        else:
+            write_value(devices[device]["Path"] + affinity_path, "DevicePolicy", "REG_DWORD", 4)
+            write_value(devices[device]["Path"] + affinity_path, "AssignmentSetOverride", "REG_BINARY", int(option, 2).to_bytes(8, "little").rstrip(b"\x00"))
 
 def show_hardware_ids():
     ids = ""
@@ -218,7 +245,7 @@ def show_readme():
     message("Syntax of device selection: 0 1 2 3 4 5 etc. or all. Each device is separated by one space.\n0 3 5   - This executes the selected operation for devices 0, 3 and 5.\nall     - This executes the selected operation for all devices.")
 
 def show_suboptions(option_choice):
-    if option_choice == "7":
+    if option_choice == "8":
         exit(0)
     elif option_choice == "1":
         toggle_msi()
@@ -229,17 +256,19 @@ def show_suboptions(option_choice):
     elif option_choice == "4":
         change_affinity_policy()
     elif option_choice == "5":
-        show_hardware_ids()
+        change_cpu_affinities()
     elif option_choice == "6":
+        show_hardware_ids()
+    elif option_choice == "7":
         show_readme()
     else:
-        message("No viable option chosen.")
+        message("Invalid input. Only 1, 2, 3, 4, 5, 6, 7 or 8 possible.")
 
 
 while True:
     devices = fetch_devices()
     print_device_information()
-    print(f"\n1. Toggle MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Show Hardware IDs\n6. Show README\n7. Exit")
+    print(f"\n1. Toggle MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs\n7. Show README\n8. Exit")
     if message_content != "":
         print("\n" + message_content)
         message_content = ""
