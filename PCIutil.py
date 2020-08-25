@@ -128,13 +128,13 @@ def all_devices_selection():
             string += " "
     return string
 
-def toggle_msi():
-    temp = {"0": "OFF", "1": "ON"}
-    option = input("Toggle MSI: 0 = OFF, 1 = ON: ")
+def change_msi():
+    temp = {"0": "OFF", "1": "ON", "2": "DELETED"}
+    option = input("Change MSI: 0 = OFF, 1 = ON, 2 = DELETED: ")
     if option not in temp:
-        message("Invalid input. Only 0 or 1 possible.")
+        message("Invalid input. Only 0, 1 or 2 possible.")
         return
-    device_selection = input(f"Turn MSI {temp[option]} for which devices?: ")
+    device_selection = input(f"Change MSI to {temp[option]} for which devices?: ")
     if device_selection == "all":
         device_selection = all_devices_selection()
     device_selection = device_selection.split(" ")
@@ -142,7 +142,10 @@ def toggle_msi():
         return
     for device in device_selection:
         device = int(device)
-        write_value(devices[device]["Path"] + interrupt_path, "MSISupported", "REG_DWORD", int(option))
+        if option == "2":
+            delete_value(devices[device]["Path"] + interrupt_path, "MSISupported")
+        else:
+            write_value(devices[device]["Path"] + interrupt_path, "MSISupported", "REG_DWORD", int(option))
 
 def change_message_limit():
     try:
@@ -247,7 +250,7 @@ def show_suboptions(option_choice):
     if option_choice == "8":
         exit(0)
     elif option_choice == "1":
-        toggle_msi()
+        change_msi()
     elif option_choice == "2":
         change_message_limit()
     elif option_choice == "3":
@@ -267,7 +270,7 @@ def show_suboptions(option_choice):
 while True:
     devices = fetch_devices()
     print_device_information()
-    print(f"\n1. Toggle MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs\n7. Show README\n8. Exit")
+    print(f"\n1. Change MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs\n7. Show README\n8. Exit")
     if message_content != "":
         print("\n" + message_content)
         message_content = ""
