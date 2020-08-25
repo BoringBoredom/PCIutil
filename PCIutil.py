@@ -30,11 +30,8 @@ def read_value(path, value_name):
             return "-"
 
 def write_value(path, value_name, value_type, value):
-    try:
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY) as key:
-            winreg.SetValueEx(key, value_name, 0, value_types[value_type], value)
-    except FileNotFoundError:
-        pass
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY) as key:
+        winreg.SetValueEx(key, value_name, 0, value_types[value_type], value)
 
 def delete_value(path, value_name):
     try:
