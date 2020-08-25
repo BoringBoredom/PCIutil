@@ -142,8 +142,7 @@ def toggle_msi():
         return
     for device in device_selection:
         device = int(device)
-        if devices[device]["MSISupported"] != "-":
-            write_value(devices[device]["Path"] + interrupt_path, "MSISupported", "REG_DWORD", int(option))
+        write_value(devices[device]["Path"] + interrupt_path, "MSISupported", "REG_DWORD", int(option))
 
 def change_message_limit():
     try:
