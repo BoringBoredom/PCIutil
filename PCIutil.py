@@ -1,5 +1,6 @@
 import winreg, os
 
+
 path = r"SYSTEM\CurrentControlSet\Enum\PCI"
 affinity_path = "\\Device Parameters\\Interrupt Management\\Affinity Policy"
 interrupt_path = "\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties"
@@ -101,9 +102,9 @@ def print_device_information():
         print("\n" + (max_index_length - len(str(devices.index(device))))*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + "\n\n" + (max_index_length + 1)*" ",
               "MSI: " + msi[device["MSISupported"]] + (5 + max_msi_length - len(msi[device["MSISupported"]]))*" ",
               "MSG Limit: " + str(device["MessageNumberLimit"]) + (5 + max_messagelimit_length - len(str(device["MessageNumberLimit"])))*" ",
-              "Interrupt Prio: " + interrupt_priorities[device["DevicePriority"]] + (5 + max_devprio_length - len(interrupt_priorities[device["DevicePriority"]]))*" ",
+              "IRQ Priority: " + interrupt_priorities[device["DevicePriority"]] + (5 + max_devprio_length - len(interrupt_priorities[device["DevicePriority"]]))*" ",
               "IRQ Policy: " + affinity_policies[device["DevicePolicy"]] + (5 + max_affinitypolicy_length - len(affinity_policies[device["DevicePolicy"]]))*" ",
-              "CPU: " + convert_affinities(device["AssignmentSetOverride"]))
+              "CPUs: " + convert_affinities(device["AssignmentSetOverride"]))
 
 def device_check(device_selection):
     try:
