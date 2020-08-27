@@ -1,5 +1,8 @@
-import winreg, os
+import winreg, os, ctypes
 
+ctypes.windll.kernel32.SetConsoleTitleW("PCIutil")
+user32 = ctypes.WinDLL('user32')
+user32.ShowWindow(user32.GetForegroundWindow(), 3)
 
 path = r"SYSTEM\CurrentControlSet\Enum\PCI"
 affinity_path = "\\Device Parameters\\Interrupt Management\\Affinity Policy"
@@ -245,7 +248,7 @@ def show_readme():
     message("Syntax of device selection: 0 1 2 3 4 5 etc. or all. Each device is separated by one space.\n0 3 5   - This executes the selected operation for devices 0, 3 and 5.\nall     - This executes the selected operation for all devices.")
 
 def show_suboptions(option_choice):
-    if option_choice == "8":
+    if option_choice == "9":
         exit(0)
     elif option_choice == "1":
         change_msi()
@@ -261,15 +264,17 @@ def show_suboptions(option_choice):
         show_hardware_ids()
     elif option_choice == "7":
         show_readme()
+    elif option_choice == "8":
+        message("https://github.com/BoringBoredom/PCIutil")
     else:
-        message("Invalid input. Only 1, 2, 3, 4, 5, 6, 7 or 8 possible.")
+        message("Invalid input. Only 1, 2, 3, 4, 5, 6, 7, 8 or 9 possible.")
 
 
 while True:
     os.system('cls')
     devices = fetch_devices()
     print_device_information()
-    print(f"\n1. Change MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs\n7. Show README\n8. Exit")
+    print(f"\n1. Change MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs\n7. Show README\n8. Show Github\n9. Exit")
     if message_content != "":
         print("\n" + message_content)
         message_content = ""
