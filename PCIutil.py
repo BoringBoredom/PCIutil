@@ -266,6 +266,7 @@ def show_suboptions(option_choice):
 
 
 while True:
+    os.system('cls')
     devices = fetch_devices()
     print_device_information()
     print(f"\n1. Change MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs\n7. Show README\n8. Exit")
