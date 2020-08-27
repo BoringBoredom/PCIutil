@@ -1,12 +1,7 @@
-import winreg, os, ctypes, sys
+import winreg, os
 
-if ctypes.windll.shell32.IsUserAnAdmin() == False:
-    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
 
 os.system('mode 300, 1000')
-ctypes.windll.kernel32.SetConsoleTitleW("PCIutil")
-user32 = ctypes.WinDLL('user32')
-user32.ShowWindow(user32.GetForegroundWindow(), 3)
 
 path = r"SYSTEM\CurrentControlSet\Enum\PCI"
 affinity_path = "\\Device Parameters\\Interrupt Management\\Affinity Policy"
