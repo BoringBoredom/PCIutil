@@ -1,7 +1,15 @@
-import winreg, os
+import winreg, os, ctypes, sys, requests
 
+
+if ctypes.windll.shell32.IsUserAnAdmin() == False:
+    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
 
 os.system('mode 300, 1000')
+ctypes.windll.kernel32.SetConsoleTitleW("PCIutil")
+user32 = ctypes.WinDLL('user32')
+user32.ShowWindow(user32.GetForegroundWindow(), 3)
+
+current_version = 0.1
 
 path = r"SYSTEM\CurrentControlSet\Enum\PCI"
 affinity_path = "\\Device Parameters\\Interrupt Management\\Affinity Policy"
@@ -11,6 +19,17 @@ interrupt_priorities = {1: "Low", 2: "Normal", 3: "High", "-": "-"}
 msi = {1: "on", 0: "off", "-": "-"}
 value_types = {"REG_DWORD": 4, "REG_BINARY": 3}
 message_content = ""
+
+def check_for_updates():
+    try:
+        r = requests.get("https://api.github.com/repos/BoringBoredom/PCIutil/releases")
+        new_version = float(r.json()[0]["tag_name"])
+        if new_version > current_version:
+            message(f"{new_version} available at https://github.com/BoringBoredom/PCIutil/releases. Your current version is {current_version}")
+        else:
+            message(f"You have the latest version ({current_version}) of PCIutil downloaded from https://github.com/BoringBoredom/PCIutil/releases")
+    except:
+        message("Can't connect to Github.")
 
 def message(message):
     global message_content
@@ -264,7 +283,7 @@ def show_suboptions(option_choice):
     elif option_choice == "7":
         show_readme()
     elif option_choice == "8":
-        message("https://github.com/BoringBoredom/PCIutil")
+        check_for_updates()
     else:
         message("Invalid input. Only 1, 2, 3, 4, 5, 6, 7, 8 or 9 possible.")
 
@@ -273,7 +292,7 @@ while True:
     os.system('cls')
     devices = fetch_devices()
     print_device_information()
-    print(f"\n1. Change MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs\n7. Show README\n8. Show Github\n9. Exit")
+    print(f"\n1. Change MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs\n7. Show README\n8. Check for updates\n9. Exit")
     if message_content != "":
         print("\n" + message_content)
         message_content = ""
