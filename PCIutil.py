@@ -23,7 +23,7 @@ message_content = ""
 def check_for_updates():
     try:
         r = requests.get("https://api.github.com/repos/BoringBoredom/PCIutil/releases/latest")
-        new_version = float(r.json()[0]["tag_name"])
+        new_version = float(r.json()["tag_name"])
         if new_version > current_version:
             message(f"{new_version} available at https://github.com/BoringBoredom/PCIutil/releases/latest. Your current version is {current_version}")
         else:
