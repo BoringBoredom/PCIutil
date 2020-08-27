@@ -22,10 +22,10 @@ message_content = ""
 
 def check_for_updates():
     try:
-        r = requests.get("https://api.github.com/repos/BoringBoredom/PCIutil/releases")
+        r = requests.get("https://api.github.com/repos/BoringBoredom/PCIutil/releases/latest")
         new_version = float(r.json()[0]["tag_name"])
         if new_version > current_version:
-            message(f"{new_version} available at https://github.com/BoringBoredom/PCIutil/releases. Your current version is {current_version}")
+            message(f"{new_version} available at https://github.com/BoringBoredom/PCIutil/releases/latest. Your current version is {current_version}")
         else:
             message(f"You have the latest version ({current_version}) of PCIutil downloaded from https://github.com/BoringBoredom/PCIutil/releases")
     except:
