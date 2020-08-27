@@ -1,5 +1,9 @@
-import winreg, os, ctypes
+import winreg, os, ctypes, sys
 
+if ctypes.windll.shell32.IsUserAnAdmin() == False:
+    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+
+os.system('mode 300, 1000')
 ctypes.windll.kernel32.SetConsoleTitleW("PCIutil")
 user32 = ctypes.WinDLL('user32')
 user32.ShowWindow(user32.GetForegroundWindow(), 3)
