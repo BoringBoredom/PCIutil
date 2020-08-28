@@ -9,14 +9,14 @@ ctypes.windll.kernel32.SetConsoleTitleW("PCIutil")
 user32 = ctypes.WinDLL('user32')
 user32.ShowWindow(user32.GetForegroundWindow(), 3)
 
-current_version = 0.1
+current_version = 0.11
 
 path = r"SYSTEM\CurrentControlSet\Enum\PCI"
 affinity_path = "\\Device Parameters\\Interrupt Management\\Affinity Policy"
 interrupt_path = "\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties"
 affinity_policies = {1: "AllCloseProcessors", 2: "OneCloseProcessor", 3: "AllProcessorsInMachine", 4: "SpecifiedProcessors", 5: "SpreadMessagesAcrossAllProcessors", "-": "MachineDefault"}
 interrupt_priorities = {1: "Low", 2: "Normal", 3: "High", "-": "-"}
-msi = {1: "on", 0: "off", "-": "-"}
+msi = {1: "On", 0: "Off", "-": "-"}
 value_types = {"REG_DWORD": 4, "REG_BINARY": 3}
 message_content = ""
 
@@ -25,7 +25,7 @@ def check_for_updates():
         r = requests.get("https://api.github.com/repos/BoringBoredom/PCIutil/releases/latest")
         new_version = float(r.json()["tag_name"])
         if new_version > current_version:
-            message(f"{new_version} available at https://github.com/BoringBoredom/PCIutil/releases/latest. Your current version is {current_version}")
+            message(f"New version ({new_version}) available at https://github.com/BoringBoredom/PCIutil/releases/latest. Your current version is {current_version}")
         else:
             message(f"You have the latest version ({current_version}) of PCIutil downloaded from https://github.com/BoringBoredom/PCIutil/releases")
     except:
@@ -207,7 +207,7 @@ def change_interrupt_priority():
 
 def change_affinity_policy():
     temp = {"0": "IrqPolicyMachineDefault", "1": "IrqPolicyAllCloseProcessors", "2": "IrqPolicyOneCloseProcessor", "3": "IrqPolicyAllProcessorsInMachine", "5": "IrqPolicySpreadMessagesAcrossAllProcessors"}
-    option = input("Change Affinity Policy to 0 = IrqPolicyMachineDefault, 1 = IrqPolicyAllCloseProcessors, 2 = IrqPolicyOneCloseProcessor, 3 = IrqPolicyAllProcessorsInMachine, 5 = IrqPolicySpreadMessagesAcrossAllProcessors: ")
+    option = input("Change Affinity Policy to 0 = MachineDefault, 1 = AllCloseProcessors, 2 = OneCloseProcessor, 3 = AllProcessorsInMachine, 5 = SpreadMessagesAcrossAllProcessors: ")
     if option not in temp:
         message("Invalid input. Only 0, 1, 2, 3 or 5 possible.")
         return
@@ -232,8 +232,8 @@ def change_cpu_affinities():
         if char not in ["0", "1"]:
             message("Invalid format. Binary string can only consist of 0s and 1s.")
             return
-    if len(option) > thread_count:
-        message("Invalid format. Too many threads entered.")
+    if len(option) != thread_count:
+        message("Invalid format. Entered threads differ from system threads.")
         return
     device_selection = input(f"Change the affinity to CPUs {convert_affinities(int(option, 2))} for which devices?: ")
     if device_selection == "all":
