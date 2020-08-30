@@ -46,7 +46,10 @@ def read_value(path, value_name):
     with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
         try:
             if winreg.QueryValueEx(key, value_name)[1] == 3:
-                return int.from_bytes(winreg.QueryValueEx(key, value_name)[0], "little")
+                try:
+                    return int.from_bytes(winreg.QueryValueEx(key, value_name)[0], "little")
+                except TypeError:
+                    return "?"
             return winreg.QueryValueEx(key, value_name)[0]
         except FileNotFoundError:
             return "-"
