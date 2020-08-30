@@ -24,8 +24,8 @@ except:
 path = r"SYSTEM\CurrentControlSet\Enum\PCI"
 affinity_path = "\\Device Parameters\\Interrupt Management\\Affinity Policy"
 msi_path = "\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties"
-affinity_policies = {1: "AllCloseProcessors", 2: "OneCloseProcessor", 3: "AllProcessorsInMachine", 4: "SpecifiedProcessors", 5: "SpreadMessagesAcrossAllProcessors", "-": "MachineDefault"}
-irq_priorities = {1: "Low", 2: "Normal", 3: "High", "-": "-"}
+affinity_policies = {1: "IrqPolicyAllCloseProcessors", 2: "IrqPolicyOneCloseProcessor", 3: "IrqPolicyAllProcessorsInMachine", 4: "IrqPolicySpecifiedProcessors", 5: "IrqPolicySpreadMessagesAcrossAllProcessors", "-": "IrqPolicyMachineDefault"}
+irq_priorities = {1: "Low", 2: "Normal", 3: "High", "-": "Undefined"}
 msi = {1: "On", 0: "Off", "-": "-"}
 value_types = {"REG_DWORD": 4, "REG_BINARY": 3}
 message_content = ""
@@ -172,7 +172,7 @@ def change_message_limit():
     except ValueError:
         message("Limit must be an integer.")
         return
-    device_selection = input("Change message limit for which devices?: ")
+    device_selection = input(f"Change the message limit to {str(limit)} for which devices?: ")
     if device_selection == "all":
         device_selection = all_devices_selection()
     device_selection = device_selection.split(" ")
@@ -191,7 +191,7 @@ def change_interrupt_priority():
     if option not in temp:
         message("Invalid input. Only 0, 1, 2 or 3 possible.")
         return
-    device_selection = input(f"Change Interrupt Priority to {option} for which devices?: ")
+    device_selection = input(f"Change the Interrupt Priority to {temp[option]} for which devices?: ")
     if device_selection == "all":
         device_selection = all_devices_selection()
     device_selection = device_selection.split(" ")
@@ -210,7 +210,7 @@ def change_affinity_policy():
     if option not in temp:
         message("Invalid input. Only 0, 1, 2, 3 or 5 possible.")
         return
-    device_selection = input(f"Change the Affinity Policy to {option} for which devices?: ")
+    device_selection = input(f"Change the Affinity Policy to {temp[option]} for which devices?: ")
     if device_selection == "all":
         device_selection = all_devices_selection()
     device_selection = device_selection.split(" ")
