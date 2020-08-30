@@ -1,4 +1,4 @@
-import winreg, os, ctypes, sys, requests
+import winreg, os, ctypes, sys, requests, webbrowser
 
 
 if ctypes.windll.shell32.IsUserAnAdmin() == False:
@@ -10,26 +10,25 @@ user32 = ctypes.WinDLL('user32')
 user32.ShowWindow(user32.GetForegroundWindow(), 3)
 
 current_version = 0.11
+try:
+    r = requests.get("https://api.github.com/repos/BoringBoredom/PCIutil/releases/latest")
+    new_version = float(r.json()["tag_name"])
+    if new_version > current_version:
+        prompt = input(f"New version available. Would you like to download it? (Y/N): ")
+        if prompt == "y" or prompt == "Y":
+            webbrowser.open("https://github.com/BoringBoredom/PCIutil/releases/download/0.11/PCIutil.exe")
+            exit(0)
+except:
+    pass
 
 path = r"SYSTEM\CurrentControlSet\Enum\PCI"
 affinity_path = "\\Device Parameters\\Interrupt Management\\Affinity Policy"
-interrupt_path = "\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties"
+msi_path = "\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties"
 affinity_policies = {1: "AllCloseProcessors", 2: "OneCloseProcessor", 3: "AllProcessorsInMachine", 4: "SpecifiedProcessors", 5: "SpreadMessagesAcrossAllProcessors", "-": "MachineDefault"}
-interrupt_priorities = {1: "Low", 2: "Normal", 3: "High", "-": "-"}
+irq_priorities = {1: "Low", 2: "Normal", 3: "High", "-": "-"}
 msi = {1: "On", 0: "Off", "-": "-"}
 value_types = {"REG_DWORD": 4, "REG_BINARY": 3}
 message_content = ""
-
-def check_for_updates():
-    try:
-        r = requests.get("https://api.github.com/repos/BoringBoredom/PCIutil/releases/latest")
-        new_version = float(r.json()["tag_name"])
-        if new_version > current_version:
-            message(f"New version ({new_version}) available at https://github.com/BoringBoredom/PCIutil/releases/latest. Your current version is {current_version}")
-        else:
-            message(f"You have the latest version ({current_version}) of PCIutil downloaded from https://github.com/BoringBoredom/PCIutil/releases")
-    except:
-        message("Can't connect to Github.")
 
 def message(message):
     global message_content
@@ -78,8 +77,8 @@ def fetch_devices():
                     device["DevicePriority"] = read_value(path3 + affinity_path, "DevicePriority")
                     device["DevicePolicy"] = read_value(path3 + affinity_path, "DevicePolicy")
                     device["AssignmentSetOverride"] = read_value(path3 + affinity_path, "AssignmentSetOverride")
-                    device["MessageNumberLimit"] = read_value(path3 + interrupt_path, "MessageNumberLimit")
-                    device["MSISupported"] = read_value(path3 + interrupt_path, "MSISupported")
+                    device["MessageNumberLimit"] = read_value(path3 + msi_path, "MessageNumberLimit")
+                    device["MSISupported"] = read_value(path3 + msi_path, "MSISupported")
                     devices.append(device)
     return devices
 
@@ -107,7 +106,7 @@ def print_device_information():
                 if length > max_msi_length:
                     max_msi_length = length
             elif option == "DevicePriority":
-                length = len(interrupt_priorities[value])
+                length = len(irq_priorities[value])
                 if length > max_devprio_length:
                     max_devprio_length = length
             elif option == "MessageNumberLimit":
@@ -123,7 +122,7 @@ def print_device_information():
         print("\n" + (max_index_length - len(str(devices.index(device))))*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + "\n\n" + (max_index_length + 1)*" ",
               "MSI: " + msi[device["MSISupported"]] + (5 + max_msi_length - len(msi[device["MSISupported"]]))*" ",
               "MSG Limit: " + str(device["MessageNumberLimit"]) + (5 + max_messagelimit_length - len(str(device["MessageNumberLimit"])))*" ",
-              "IRQ Priority: " + interrupt_priorities[device["DevicePriority"]] + (5 + max_devprio_length - len(interrupt_priorities[device["DevicePriority"]]))*" ",
+              "IRQ Priority: " + irq_priorities[device["DevicePriority"]] + (5 + max_devprio_length - len(irq_priorities[device["DevicePriority"]]))*" ",
               "IRQ Policy: " + affinity_policies[device["DevicePolicy"]] + (5 + max_affinitypolicy_length - len(affinity_policies[device["DevicePolicy"]]))*" ",
               "CPUs: " + convert_affinities(device["AssignmentSetOverride"]))
 
@@ -162,9 +161,9 @@ def change_msi():
     for device in device_selection:
         device = int(device)
         if option == "2":
-            delete_value(devices[device]["Path"] + interrupt_path, "MSISupported")
+            delete_value(devices[device]["Path"] + msi_path, "MSISupported")
         else:
-            write_value(devices[device]["Path"] + interrupt_path, "MSISupported", "REG_DWORD", int(option))
+            write_value(devices[device]["Path"] + msi_path, "MSISupported", "REG_DWORD", int(option))
 
 def change_message_limit():
     try:
@@ -182,9 +181,9 @@ def change_message_limit():
     for device in device_selection:
         device = int(device)
         if limit == 0:
-            delete_value(devices[device]["Path"] + interrupt_path, "MessageNumberLimit")
+            delete_value(devices[device]["Path"] + msi_path, "MessageNumberLimit")
         else:
-            write_value(devices[device]["Path"] + interrupt_path, "MessageNumberLimit", "REG_DWORD", limit)
+            write_value(devices[device]["Path"] + msi_path, "MessageNumberLimit", "REG_DWORD", limit)
 
 def change_interrupt_priority():
     temp = {"0": "Undefined", "1": "Low", "2": "Normal", "3": "High"}
@@ -263,11 +262,13 @@ def show_hardware_ids():
     message(ids)
 
 def show_readme():
-    message("Syntax of device selection: 0 1 2 3 4 5 etc. or all. Each device is separated by one space.\n0 3 5   - This executes the selected operation for devices 0, 3 and 5.\nall     - This executes the selected operation for all devices.")
+    message("Syntax of device selection: 0 1 2 3 4 5 etc. or all. Each device is separated by one space.\n0 3 5   - This executes the selected operation for devices 0, 3 and 5.\nall     - This executes the selected operation for all devices.\n\nBe careful when changing settings of storage drivers. Some settings might BSOD on specific drivers.\n\nexit    - This command exits the program.")
 
 def show_suboptions(option_choice):
-    if option_choice == "9":
+    if option_choice == "exit":
         exit(0)
+    elif option_choice == "0":
+        show_readme()
     elif option_choice == "1":
         change_msi()
     elif option_choice == "2":
@@ -280,10 +281,6 @@ def show_suboptions(option_choice):
         change_cpu_affinities()
     elif option_choice == "6":
         show_hardware_ids()
-    elif option_choice == "7":
-        show_readme()
-    elif option_choice == "8":
-        check_for_updates()
     else:
         message("Invalid input. Only 1, 2, 3, 4, 5, 6, 7, 8 or 9 possible.")
 
@@ -292,7 +289,7 @@ while True:
     os.system('cls')
     devices = fetch_devices()
     print_device_information()
-    print(f"\n1. Change MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs\n7. Show README\n8. Check for updates\n9. Exit")
+    print(f"\n0. Show README\n1. Change MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs")
     if message_content != "":
         print("\n" + message_content)
         message_content = ""
