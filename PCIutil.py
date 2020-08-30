@@ -29,6 +29,7 @@ irq_priorities = {1: "Low", 2: "Normal", 3: "High", "-": "Undefined"}
 msi = {1: "On", 0: "Off", "-": "-"}
 value_types = {"REG_DWORD": 4, "REG_BINARY": 3}
 message_content = ""
+export_lock = False
 
 def message(message):
     global message_content
@@ -98,39 +99,74 @@ def convert_affinities(value):
     return cpu_list
 
 def print_device_information():
+    global export_lock
     max_msi_length, max_devprio_length, max_messagelimit_length, max_affinitypolicy_length = 0, 0, 0, 0
     for device in devices:
-        try:
-            for option, value in device.items():
-                if option == "MSISupported":
+        for option, value in device.items():
+            if option == "MSISupported":
+                try:
                     length = len(msi[value])
-                    if length > max_msi_length:
-                        max_msi_length = length
-                elif option == "DevicePriority":
+                except KeyError:
+                    length = 1
+                    export_lock = True
+                if length > max_msi_length:
+                    max_msi_length = length
+            elif option == "DevicePriority":
+                try:
                     length = len(irq_priorities[value])
-                    if length > max_devprio_length:
-                        max_devprio_length = length
-                elif option == "MessageNumberLimit":
+                except KeyError:
+                    length = 1
+                    export_lock = True
+                if length > max_devprio_length:
+                    max_devprio_length = length
+            elif option == "MessageNumberLimit":
+                try:
                     length = len(str(value))
-                    if length > max_messagelimit_length:
-                        max_messagelimit_length = length
-                elif option == "DevicePolicy":
+                except KeyError:
+                    length = 1
+                    export_lock = True
+                if length > max_messagelimit_length:
+                    max_messagelimit_length = length
+            elif option == "DevicePolicy":
+                try:
                     length = len(affinity_policies[value])
-                    if length > max_affinitypolicy_length:
-                        max_affinitypolicy_length = length
-        except KeyError:
-            pass
+                except KeyError:
+                    length = 1
+                    export_lock = True
+                if length > max_affinitypolicy_length:
+                    max_affinitypolicy_length = length
     max_index_length = len(str(len(devices) - 1))
     for device in devices:
+        string = "\n" + (max_index_length - len(str(devices.index(device))))*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + "\n\n" + (max_index_length + 2)*" "
+        string += "MSI: "
         try:
-            print("\n" + (max_index_length - len(str(devices.index(device))))*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + "\n\n" + (max_index_length + 1)*" ",
-                  "MSI: " + msi[device["MSISupported"]] + (5 + max_msi_length - len(msi[device["MSISupported"]]))*" ",
-                  "MSG Limit: " + str(device["MessageNumberLimit"]) + (5 + max_messagelimit_length - len(str(device["MessageNumberLimit"])))*" ",
-                  "IRQ Priority: " + irq_priorities[device["DevicePriority"]] + (5 + max_devprio_length - len(irq_priorities[device["DevicePriority"]]))*" ",
-                  "IRQ Policy: " + affinity_policies[device["DevicePolicy"]] + (5 + max_affinitypolicy_length - len(affinity_policies[device["DevicePolicy"]]))*" ",
-                  "CPUs: " + convert_affinities(device["AssignmentSetOverride"]))
+            string += msi[device["MSISupported"]] + (6 + max_msi_length - len(msi[device["MSISupported"]]))*" "
         except KeyError:
-            print("\n" + (max_index_length - len(str(devices.index(device))))*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + " has incompatible registry entries.")
+            string += "?" + (5 + max_msi_length)*" "
+        string += "MSG Limit: " + str(device["MessageNumberLimit"]) + (6 + max_messagelimit_length - len(str(device["MessageNumberLimit"])))*" "
+        string += "IRQ Priority: "
+        try:
+            string += irq_priorities[device["DevicePriority"]] + (6 + max_devprio_length - len(irq_priorities[device["DevicePriority"]]))*" "
+        except KeyError:
+            string += "?" + (5 + max_devprio_length)*" "
+        string += "IRQ Policy: "
+        try:
+            string += affinity_policies[device["DevicePolicy"]] + (6 + max_affinitypolicy_length - len(affinity_policies[device["DevicePolicy"]]))*" "
+        except KeyError:
+            string += "?" + (5 + max_affinitypolicy_length)*" "
+        string += "CPUs: "
+        try:
+            string += convert_affinities(device["AssignmentSetOverride"])
+        except TypeError:
+            string += "?"
+        print(string)
+
+#        print("\n" + (max_index_length - len(str(devices.index(device))))*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + "\n\n" + (max_index_length + 1)*" ",
+#              "MSI: " + msi[device["MSISupported"]] + (5 + max_msi_length - len(msi[device["MSISupported"]]))*" ",
+#              "MSG Limit: " + str(device["MessageNumberLimit"]) + (5 + max_messagelimit_length - len(str(device["MessageNumberLimit"])))*" ",
+#              "IRQ Priority: " + irq_priorities[device["DevicePriority"]] + (5 + max_devprio_length - len(irq_priorities[device["DevicePriority"]]))*" ",
+#              "IRQ Policy: " + affinity_policies[device["DevicePolicy"]] + (5 + max_affinitypolicy_length - len(affinity_policies[device["DevicePolicy"]]))*" ",
+#              "CPUs: " + convert_affinities(device["AssignmentSetOverride"]))
 
 def device_check(device_selection):
     try:
