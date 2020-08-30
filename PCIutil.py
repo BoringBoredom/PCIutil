@@ -161,13 +161,6 @@ def print_device_information():
             string += "?"
         print(string)
 
-#        print("\n" + (max_index_length - len(str(devices.index(device))))*" " + str(devices.index(device)) + ". " + device['DeviceDesc'] + "\n\n" + (max_index_length + 1)*" ",
-#              "MSI: " + msi[device["MSISupported"]] + (5 + max_msi_length - len(msi[device["MSISupported"]]))*" ",
-#              "MSG Limit: " + str(device["MessageNumberLimit"]) + (5 + max_messagelimit_length - len(str(device["MessageNumberLimit"])))*" ",
-#              "IRQ Priority: " + irq_priorities[device["DevicePriority"]] + (5 + max_devprio_length - len(irq_priorities[device["DevicePriority"]]))*" ",
-#              "IRQ Policy: " + affinity_policies[device["DevicePolicy"]] + (5 + max_affinitypolicy_length - len(affinity_policies[device["DevicePolicy"]]))*" ",
-#              "CPUs: " + convert_affinities(device["AssignmentSetOverride"]))
-
 def device_check(device_selection):
     try:
         for device in device_selection:
