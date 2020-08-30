@@ -9,7 +9,7 @@ ctypes.windll.kernel32.SetConsoleTitleW("PCIutil")
 user32 = ctypes.WinDLL('user32')
 user32.ShowWindow(user32.GetForegroundWindow(), 3)
 
-current_version = 0.11
+current_version = 0.12
 try:
     r = requests.get("https://api.github.com/repos/BoringBoredom/PCIutil/releases/latest")
     new_version = float(r.json()["tag_name"])
