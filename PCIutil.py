@@ -123,11 +123,7 @@ def print_device_information():
                 if length > max_devprio_length:
                     max_devprio_length = length
             elif option == "MessageNumberLimit":
-                try:
-                    length = len(str(value))
-                except KeyError:
-                    length = 1
-                    export_lock = True
+                length = len(str(value))
                 if length > max_messagelimit_length:
                     max_messagelimit_length = length
             elif option == "DevicePolicy":
