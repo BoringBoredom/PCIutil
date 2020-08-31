@@ -339,7 +339,7 @@ def import_config():
     if file_list == []:
         message("No configs found.")
         return
-    option = input("Import which file?: ")
+    option = input("Import which config?: ")
     if option not in files:
         message("File doesn't exist.")
         return
