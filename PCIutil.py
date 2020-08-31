@@ -3,7 +3,7 @@ import ctypes, sys
 if ctypes.windll.shell32.IsUserAnAdmin() == False:
     ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
 
-import winreg, webbrowser, requests, os
+import winreg, webbrowser, requests, os, json
 
 current_version = 0.12
 os.system('mode 300, 1000')
@@ -57,11 +57,11 @@ def write_value(path, value_name, value_type, value):
         winreg.SetValueEx(key, value_name, 0, value_types[value_type], value)
 
 def delete_value(path, value_name):
-    try:
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY) as key:
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY) as key:
+        try:
             winreg.DeleteValue(key, value_name)
-    except FileNotFoundError:
-        pass
+        except FileNotFoundError:
+            pass
 
 def fetch_devices():
     devices = []
@@ -296,6 +296,76 @@ def show_hardware_ids():
 def show_readme():
     message("Syntax of device selection: 0 1 2 3 4 5 etc. or all. Each device is separated by one space.\n0 3 5   - This executes the selected operation for devices 0, 3 and 5.\nall     - This executes the selected operation for all devices.\n\nBe careful when changing settings of storage drivers. Some settings might BSOD on specific drivers.\n\nexit    - This command exits the program.")
 
+def apply_import(config):
+    for device in config:
+        for value_name, value in device.items():
+            if value_name == "MSISupported":
+                if value == "-":
+                    delete_value(device["Path"] + msi_path, value_name)
+                else:
+                    write_value(device["Path"] + msi_path, value_name, "REG_DWORD", value)
+            elif value_name == "MessageNumberLimit":
+                if value == "-":
+                    delete_value(device["Path"] + msi_path, value_name)
+                else:
+                    write_value(device["Path"] + msi_path, value_name, "REG_DWORD", value)
+            elif value_name == "DevicePriority":
+                if value == "-":
+                    delete_value(device["Path"] + affinity_path, value_name)
+                else:
+                    write_value(device["Path"] + affinity_path, value_name, "REG_DWORD", value)
+            elif value_name == "DevicePolicy":
+                if value == "-":
+                    delete_value(device["Path"] + affinity_path, value_name)
+                else:
+                    write_value(device["Path"] + affinity_path, value_name, "REG_DWORD", value)
+            elif value_name == "AssignmentSetOverride":
+                if value == "-":
+                    delete_value(device["Path"] + affinity_path, value_name)
+                else:
+                    write_value(device["Path"] + affinity_path, "AssignmentSetOverride", "REG_BINARY", value.to_bytes(8, "little").rstrip(b"\x00"))
+
+def import_config():
+    file_list = []
+    for file in os.listdir():
+        if "json" in file:
+            file_list.append(file.split(".")[0])
+    i = 0
+    files = {}
+    for file in file_list:
+        files[str(i)] = file
+        print(f"{i}. {file}")
+        i += 1
+    option = input("Import which file?: ")
+    if option not in files:
+        message("File doesn't exist.")
+        return
+    with open(f"{files[option]}.json", "r") as f:
+        config = json.load(f)
+    j = 0
+    for device in config:
+        if device["Path"] != devices[j]["Path"]:
+            message("Config incompatible with currently active devices.")
+            return
+        j += 1
+    apply_import(config)
+
+def config_menu():
+    global export_lock
+    option = input("Enter 1 to import a config, 2 to export a config: ")
+    if option not in ["1", "2"]:
+        message("Invalid input. Only 1 or 2 possible.")
+        return
+    if option == "1":
+        import_config()
+    elif option == "2":
+        if export_lock == True:
+            message("Export disallowed due to incompatible registry entries.")
+            return
+        config_name = input("Enter the config name: ")
+        with open(f"{config_name}.json", 'w') as f:
+            json.dump(devices, f, indent=4)
+
 def show_suboptions(option_choice):
     if option_choice == "exit":
         sys.exit(0)
@@ -313,15 +383,18 @@ def show_suboptions(option_choice):
         change_cpu_affinities()
     elif option_choice == "6":
         show_hardware_ids()
+    elif option_choice == "7":
+        config_menu()
     else:
-        message("Invalid input. Only 1, 2, 3, 4, 5, 6, 7, 8 or 9 possible.")
+        message("Invalid input.")
 
 
 while True:
+    export_lock == False
     os.system('cls')
     devices = fetch_devices()
     print_device_information()
-    print(f"\n0. Show README\n1. Change MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs")
+    print(f"\n0. Show README\n1. Change MSI\n2. Change Message Limit\n3. Change Interrupt Priority\n4. Change Affinity Policy\n5. Change CPU Affinities\n6. Show Hardware IDs\n7. Import/Export config")
     if message_content != "":
         print("\n" + message_content)
         message_content = ""
