@@ -1,23 +1,21 @@
-import winreg, os, ctypes, sys, requests, webbrowser
-
+import ctypes, sys
 
 if ctypes.windll.shell32.IsUserAnAdmin() == False:
     ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
 
+import winreg, webbrowser, requests, os
+
+current_version = 0.12
 os.system('mode 300, 1000')
-ctypes.windll.kernel32.SetConsoleTitleW("PCIutil")
+ctypes.windll.kernel32.SetConsoleTitleW("PCIutil " + str(current_version))
 user32 = ctypes.WinDLL('user32')
 user32.ShowWindow(user32.GetForegroundWindow(), 3)
 
-current_version = 0.12
 try:
     r = requests.get("https://api.github.com/repos/BoringBoredom/PCIutil/releases/latest")
     new_version = float(r.json()["tag_name"])
     if new_version > current_version:
-        prompt = input(f"New version available. Would you like to download it? (Y/N): ")
-        if prompt == "y" or prompt == "Y":
-            webbrowser.open("https://github.com/BoringBoredom/PCIutil/releases/download/0.11/PCIutil.exe")
-            exit(0)
+        webbrowser.open("https://github.com/BoringBoredom/PCIutil/releases/latest")
 except:
     pass
 
@@ -300,7 +298,7 @@ def show_readme():
 
 def show_suboptions(option_choice):
     if option_choice == "exit":
-        exit(0)
+        sys.exit(0)
     elif option_choice == "0":
         show_readme()
     elif option_choice == "1":
