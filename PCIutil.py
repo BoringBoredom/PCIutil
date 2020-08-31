@@ -336,6 +336,9 @@ def import_config():
         files[str(i)] = file
         print(f"{i}. {file}")
         i += 1
+    if file_list == []:
+        message("No configs found.")
+        return
     option = input("Import which file?: ")
     if option not in files:
         message("File doesn't exist.")
