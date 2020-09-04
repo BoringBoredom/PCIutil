@@ -5,7 +5,7 @@ if ctypes.windll.shell32.IsUserAnAdmin() == False:
 
 import winreg, webbrowser, requests, os, json
 
-current_version = 0.13
+current_version = 0.14
 os.system('mode 300, 1000')
 ctypes.windll.kernel32.SetConsoleTitleW("PCIutil " + str(current_version))
 user32 = ctypes.WinDLL('user32')
