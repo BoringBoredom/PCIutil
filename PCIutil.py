@@ -67,11 +67,11 @@ def fetch_devices():
     devices = []
     with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
         for i in range(winreg.QueryInfoKey(key)[0]):
-            try:
-                device = {}
-                device["Hardware ID"] = winreg.EnumKey(key, i)
-                path2 = path + "\\" + winreg.EnumKey(key, i)
-                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path2, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key2:
+            device = {}
+            device["Hardware ID"] = winreg.EnumKey(key, i)
+            path2 = path + "\\" + winreg.EnumKey(key, i)
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path2, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key2:
+                if winreg.QueryInfoKey(key2)[0] != 0:
                     path3 = path2 + "\\" + winreg.EnumKey(key2, 0)
                     if read_value(path3, "ConfigFlags") == 0:
                         device["Path"] = path3
@@ -83,8 +83,6 @@ def fetch_devices():
                         device["MessageNumberLimit"] = read_value(path3 + msi_path, "MessageNumberLimit")
                         device["MSISupported"] = read_value(path3 + msi_path, "MSISupported")
                         devices.append(device)
-            except OSError:
-                pass
     return devices
 
 def convert_affinities(value):
